@@ -6,7 +6,7 @@ const knex = require('knex');
 const knexConfig = {
   client: 'sqlite3',
   connection: {
-    filename: './data/lambdaschool.db3',
+    filename: './data/lambdaschool1.db3',
   },
   useNullAsDefault: true, // needed for sqlite
 };
@@ -47,11 +47,12 @@ server.get('/api/cohorts/:id', async (req, res) => {
 server.get('/api/cohorts/:id/students', async (req, res) => {
   // get the cohorts from the database
   try {
-    const role = await db('students')
-      .where({ id: req.params.id })
+    const role = await db('cohorts').innerJoin('students','cohorts.id','=','students.cohort_id').select('students.id', 'students.name', 'cohorts.cohort')
+      .where({ 'cohorts.id': req.params.id })
       .first();
     res.status(200).json(role);
   } catch (error) {
+    console.log(error)
     res.status(500).json(error);
   }
 });
@@ -113,23 +114,23 @@ server.delete('/api/cohorts/:id', async (req, res) => {
 server.get('/api/students', async (req, res) => {
   // get the students from the database
   try {
-    const students = await db('students'); // all the records from the table
+    const students = await db('students').innerJoin('cohorts', 'students.cohort_id', '=', 'cohorts.id').select('students.id', 'students.name', 'cohorts.cohort', 'students.cohort_id', 'students.created_At', 'students.updated_At');
     res.status(200).json(students);
   } catch (error) {
+    console.log(error);
     res.status(500).json(error);
   }
 });
 
-// list a role by id
+// list a student by id
 server.get('/api/students/:id', async (req, res) => {
   // get the students from the database
   try {
-    const role = await db('students').join('cohorts', 'students.cohort_id', '=', 'cohorts.id').select('students.cohort_id', 'cohorts.name')
-      .where({ id: req.params.id })
+    const student = await db('students').innerJoin('cohorts', 'students.cohort_id', '=', 'cohorts.id').select('students.id', 'students.name', 'cohorts.cohort')
+      .where({ 'students.id': req.params.id })
       .first();
-    res.status(200).json(role);
+    res.status(200).json(student);
   } catch (error) {
-    console.log(error);
     res.status(500).json(error);
   }
 });
@@ -143,11 +144,11 @@ server.post('/api/students', async (req, res) => {
   try {
     const [id] = await db('students').insert(req.body);
 
-    const role = await db('students')
+    const student = await db('students')
       .where({ id })
       .first();
 
-    res.status(201).json(role);
+    res.status(201).json(student);
   } catch (error) {
     const message = errorsStudents[error.errno] || 'We ran into an error';
     res.status(500).json({ message, error });
@@ -161,11 +162,11 @@ server.put('/api/students/:id', async (req, res) => {
       .update(req.body);
 
     if (count > 0) {
-      const role = await db('students')
+      const student = await db('students')
         .where({ id: req.params.id })
         .first();
 
-      res.status(200).json(role);
+      res.status(200).json(student);
     } else {
       res.status(404).json({ message: 'Records not found' });
     }
